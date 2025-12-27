@@ -1,0 +1,613 @@
+---
+title: "Gapminder Dataset: Fertility and Female Employment"
+author: Manuela Eder
+format:
+  dashboard:
+    nav-buttons:
+     left: true
+     right: true
+     home: true
+    theme: sandstone
+    
+execute:
+  warning: false
+  message: false
+---
+
+```{python}
+# Imports
+
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import country_converter as coco
+import itables as it
+from itables import show
+
+
+# Datasets ((I removed the output functions here))
+fertility = pd.read_csv("children_per_woman_total_fertility.csv") 
+
+fem_emp = pd.read_csv("females_aged_15plus_employment_rate_percent.csv")
+
+# Reshape from wide to long 
+
+fertility_long = fertility.melt(
+    id_vars=["geo","name"],
+    var_name="year",
+    value_name="fertility_rate").sort_values(["geo", "name"])
+
+fertility_long["year"] = fertility_long["year"].astype(int)
+
+fem_emp_long = fem_emp.melt(id_vars=["geo", "name"],
+    var_name="year",
+    value_name="female_employment_rate").sort_values(["geo", "name"])
+
+fem_emp_long["year"] = fem_emp_long["year"].astype(int)
+
+# Select the data from 2000-2025
+fertility_y2000 = fertility_long.query("2000 <= year <= 2025")
+fem_emp_y2000 = fem_emp_long.query("2000 <= year <= 2025")
+
+# Joinging the two datasets
+fert_emp_combined = pd.merge(
+    fertility_y2000,
+    fem_emp_y2000,
+    on=["geo", "name", "year"],
+    how="inner").dropna(subset=["fertility_rate", "female_employment_rate"])
+```
+
+```{python}
+# Subset of countries
+countries = ["Switzerland", "USA", "France"]
+
+subset_fert_emp = fert_emp_combined[
+    fert_emp_combined["name"].isin(countries)]
+```
+
+```{python}
+#Summary metrics for value boxes
+num_countries = fert_emp_combined["name"].nunique()
+num_years = fert_emp_combined["year"].nunique()
+
+mean_fertility = fert_emp_combined["fertility_rate"].mean()
+mean_employment = fert_emp_combined["female_employment_rate"].mean()
+```
+
+```{python}
+#| label: setup-figures
+#| echo: false
+#| results: "hide"
+
+### Fertility and female employment
+
+# Line plot: fertility over time
+fig_fertility = px.line(
+    subset_fert_emp,
+    x="year",
+    y="fertility_rate",
+    color="name",
+    labels={
+        "year": "Year",
+        "name": "Country",
+        "fertility_rate": "Fertility rate (children per woman)"},
+    title="Fertility trends over time (selected countries)")
+
+# For each country, keeping the last available year (I struggled a lot with the legend, I saw on the plotly cummunity - https://community.plotly.com/t/legends-not-working-in-vs-code/83414 - that it is a common issue, that's why I chose this solution)
+last_points = (
+    subset_fert_emp
+    .sort_values(["name", "year"])
+    .dropna(subset=["fertility_rate"])
+    .groupby("name", as_index=False)
+    .tail(1))
+
+# Line plot: female employment over time
+fig_employment = px.line(
+    subset_fert_emp,
+    x="year",
+    y="female_employment_rate",
+    color="name",
+    labels={
+        "year": "Year",
+        "name": "Country",
+        "female_employment_rate": "Female employment rate (%)"},
+    title="Female employment rates over time (selected countries)")
+
+
+last_points_emp = (
+    subset_fert_emp
+    .sort_values(["name", "year"])
+    .dropna(subset=["female_employment_rate"])
+    .groupby("name", as_index=False)
+    .tail(1)
+)
+```
+
+```{python}
+# Animated scatter: fertility vs employment over time
+
+fert_emp_combined["region"] = coco.convert(
+    fert_emp_combined["geo"], to="UNregion")
+
+fig_scatter = px.scatter(
+    fert_emp_combined,
+    x="female_employment_rate",
+    y="fertility_rate",
+    color="region",
+    hover_name="name",
+    animation_frame="year",
+    labels={
+        "female_employment_rate": "Female employment rate (%)",
+        "fertility_rate": "Fertility rate (children per woman)",
+        "region": "Region",
+        "year": "Year"
+    },
+    title="Fertility vs female employment rate over time")
+
+```
+
+```{python}
+# Setup for the fertility - value boxes 
+
+# Fertility 2025
+fertility_2025 = fertility_y2000[fertility_y2000["year"] == 2025].copy()
+
+# highest Fertility 2025
+max_row_2025 = fertility_2025.loc[fertility_2025["fertility_rate"].idxmax()]
+max_fertility_2025 = max_row_2025["fertility_rate"]
+country_max_fert_2025 = max_row_2025["name"]
+
+# lowest fertility 2025
+min_row_2025 = fertility_2025.loc[fertility_2025["fertility_rate"].idxmin()]
+min_fertility_2025 = min_row_2025["fertility_rate"]
+country_min_fert_2025 = min_row_2025["name"]
+
+# durchschnittliche Fertility 2025
+mean_fertility_2025 = fertility_2025["fertility_rate"].mean()
+
+closest_idx = (fertility_2025["fertility_rate"] - mean_fertility_2025).abs().idxmin()
+closest_row_2025 = fertility_2025.loc[closest_idx]
+country_meanlike_2025 = closest_row_2025["name"]
+fertility_meanlike_2025 = closest_row_2025["fertility_rate"]
+
+# clean numeric values for display
+max_fertility_2025_val = round(float(max_fertility_2025), 2)
+min_fertility_2025_val = round(float(min_fertility_2025), 2)
+mean_fertility_2025_val = round(float(mean_fertility_2025), 2)
+fertility_meanlike_2025_val = round(float(fertility_meanlike_2025), 2)
+
+```
+
+
+```{python}
+# Setup for the female employment - value boxes 
+
+# Female employment 2025
+employment_2025 = fem_emp_y2000[fem_emp_y2000["year"] == 2025].copy()
+
+# Highest female employment 2025
+max_row_emp_2025 = employment_2025.loc[employment_2025["female_employment_rate"].idxmax()]
+max_employment_2025 = max_row_emp_2025["female_employment_rate"]
+country_max_emp_2025 = max_row_emp_2025["name"]
+
+# Lowest female employment 2025
+min_row_emp_2025 = employment_2025.loc[employment_2025["female_employment_rate"].idxmin()]
+min_employment_2025 = min_row_emp_2025["female_employment_rate"]
+country_min_emp_2025 = min_row_emp_2025["name"]
+
+# Average female employment 2025
+mean_employment_2025 = employment_2025["female_employment_rate"].mean()
+
+closest_idx_emp = (employment_2025["female_employment_rate"] - mean_employment_2025).abs().idxmin()
+closest_row_emp_2025 = employment_2025.loc[closest_idx_emp]
+country_meanlike_emp_2025 = closest_row_emp_2025["name"]
+employment_meanlike_2025 = closest_row_emp_2025["female_employment_rate"]
+
+# Clean numeric values for display (1 decimal place for percentages)
+max_employment_2025_val = round(float(max_employment_2025), 1)
+min_employment_2025_val = round(float(min_employment_2025), 1)
+mean_employment_2025_val = round(float(mean_employment_2025), 1)
+employment_meanlike_2025_val = round(float(employment_meanlike_2025), 1)
+```
+
+```{python}
+# Top/bottom 5 countries for fertility and employment in 2025
+
+# Top/bottom 5 fertility 2025
+
+top5_fertility_2025 = (fertility_2025
+.nlargest(5, "fertility_rate")
+[["name", "fertility_rate"]]
+.reset_index(drop=True))
+
+
+bottom5_fertility_2025 = (fertility_2025
+.nsmallest(5, "fertility_rate")
+[["name", "fertility_rate"]]
+.reset_index(drop=True))
+
+top5_fertility_2025 = top5_fertility_2025.rename(
+    columns={"name": "Country", "fertility_rate": "Fertility rate"})
+
+bottom5_fertility_2025 = bottom5_fertility_2025.rename(
+    columns={"name": "Country", "fertility_rate": "Fertility rate"})
+
+# Top/bottom 5 female employment 2025
+
+top5_employment_2025 = (employment_2025
+.nlargest(5, "female_employment_rate")
+[["name", "female_employment_rate"]]
+.reset_index(drop=True))
+
+
+bottom5_employment_2025 = (
+employment_2025
+.nsmallest(5, "female_employment_rate")
+[["name", "female_employment_rate"]]
+.reset_index(drop=True))
+
+top5_employment_2025 = top5_employment_2025.rename(
+    columns={"name": "Country", "fertility_rate": "Fertility rate"}
+)
+
+bottom5_employment_2025 = bottom5_employment_2025.rename(
+    columns={"name": "Country", "fertility_rate": "Fertility rate"})
+
+# Add decade and create region-by-decade pivot tables
+
+# decade variable (e.g. 2000, 2010, 2020)
+
+fert_emp_combined["decade"] = (fert_emp_combined["year"] // 10) * 10
+
+# Mean fertility by region and decade
+
+fert_region_decade = (fert_emp_combined
+.groupby(["region", "decade"], as_index=False)
+.agg(mean_fertility=("fertility_rate", "mean"))
+.pivot(index="region", columns="decade", values="mean_fertility")
+.round(2))
+
+# Mean female employment by region and decade
+emp_region_decade = (
+fert_emp_combined
+.groupby(["region", "decade"], as_index=False)
+.agg(mean_employment=("female_employment_rate", "mean"))
+.pivot(index="region", columns="decade", values="mean_employment")
+.round(1))
+
+### For the summary I used bootstrap icons 
+
+```
+
+```{python}
+# Prepare the files for the download
+
+#| echo: false
+#| results: "hide"
+
+fertility_y2000.to_csv("fertility_data_2000_2025.csv", index=False)
+fem_emp_y2000.to_csv("female_employment_2000_2025.csv", index=False)
+fert_emp_combined.to_csv("fert_emp_combined.csv", index=False)
+
+```
+
+
+# Overview
+
+## Row {height="60%"}
+
+### Column {width="50%"}
+::: {.callout-note title="Introduction"}
+This dashboard is based on **Gapminder-style data** describing:
+
+- *Total fertility rate* (children per woman) by country and year  
+- *Female employment rate* (15+ years, in % of the population) by country and year  
+
+The data have been:
+
+1. Reshaped from **wide** to **long** format  
+2. Restricted to the years **2000–2025**  
+3. Merged into a combined dataset `fert_emp_combined` using the keys `geo`, `name`, and `year`.
+
+You can use the pages in the navigation bar to:
+
+- Explore fertility trends over time  
+- Explore female employment trends over time  
+- Analyse how fertility and female employment relate to each other across countries and years  
+:::
+
+### Column {width="50%"}
+::: {.callout-note title="Download the data"}
+You can access the underlying data used in this dashboard:
+
+- [Download fertility data](fertility_data_2000_2025.csv){download="fertility_data.csv"}
+- [Download female employment data](female_employment_2000_2025.csv){download="female_employment.csv"} 
+
+If you create an exported merged file, you can also link it here, for example:
+
+- [Download merged dataset](fert_emp_combined.csv){download="fert_emp_combined.csv"}
+:::
+
+# Fertility
+
+## Row {height="20%"}
+
+### Column {width="33%"}
+
+::: {.valuebox title="Highest fertility (2025)" color="#8A42FF" icon="arrow-up-circle-fill"}
+`{python} max_fertility_2025_val` children per woman  
+`{python} country_max_fert_2025`
+:::
+
+### Column {width="33%"}
+
+::: {.valuebox title="Lowest fertility (2025)" color="#f0b1ad" icon="arrow-down-circle-fill"}
+`{python} min_fertility_2025_val` children per woman  
+`{python} country_min_fert_2025`
+:::
+
+### Column {width="33%"}
+
+::: {.valuebox title="Around average fertility (2025)" color="#aba1cf" icon="dash-circle-fill"}
+Average: `{python} mean_fertility_2025_val` children per woman  
+
+Closest country: `{python} country_meanlike_2025`  
+(`{python} fertility_meanlike_2025_val` children per woman)
+:::
+
+## Row {height="15%"}
+
+This page presents the **total fertility rate** (average number of children per woman) between 2000 and 2025 for a selection of countries (Switzerland, USA, France).
+
+The indicator reflects long-term demographic and social changes, including family norms, gender roles, economic conditions, and access to contraception.
+
+Typical questions:
+
+- How has fertility evolved over time in different regions?
+- Are there clear differences between high-income and emerging economies?
+- Do we observe convergence or divergence in fertility levels?
+
+## Row {height="35%"}
+
+### Column {width="100%"}
+
+```{python}
+fig_fertility.add_scatter(
+    x=last_points["year"],
+    y=last_points["fertility_rate"],
+    mode="text",
+    text=last_points["name"],
+    textposition="middle right",
+    showlegend=False).update_layout(showlegend=False, height=450)
+```
+
+## Row {height= "10%"}
+::: {.callout-note collapse="true"}
+
+## Interpretation
+The fertility trends in the United States, France, and Switzerland show a clear downward movement over the past two decades, although the three countries began at different levels. The United States starts with the highest fertility but experiences a steady and continuous decline throughout the period. France initially maintains relatively stable and comparatively high fertility, but from around the early 2010s onward, its rates also begin to drop. Switzerland starts at the lowest level and exhibits only modest fluctuations over time, with a slight rise in the mid-2000s followed by a return to similarly low values in recent years. By the end of the observation period, all three countries converge toward similarly low fertility levels, reflecting a broader demographic trend across high-income societies.
+
+When interpreting the chart, it is useful to consider more information on:
+
+- Policy measures (e.g. family policies, parental leave, childcare)
+- Economic uncertainty and labour market conditions
+- Changing norms regarding family size and timing of parenthood
+:::
+
+## Row {height="20%"}
+
+### Column {width="50%"}
+::: {.callout-note title="Top 5 Countries (Fertility 2025)"}
+
+```{python}
+top5_fertility_2025
+```
+
+:::
+
+### Column {width="50%"}
+::: {.callout-note title="Lowest 5 Countries (Fertility 2025)"}
+
+```{python}
+bottom5_fertility_2025
+```
+
+:::
+
+# Female Employment Rate
+
+## Row {height="20%"}
+
+### Column {width="33%"}
+
+::: {.valuebox title="Highest female employment (2025)" color="#8A42FF" icon="arrow-up-circle-fill"}
+`{python} max_employment_2025_val` %  
+`{python} country_max_emp_2025`
+:::
+
+### Column {width="33%"}
+
+::: {.valuebox title="Lowest female employment (2025)" color="#f0b1ad" icon="arrow-down-circle-fill"}
+`{python} min_employment_2025_val` %  
+`{python} country_min_emp_2025`
+:::
+
+### Column {width="33%"}
+
+::: {.valuebox title="Around average female employment (2025)" color="#aba1cf" icon="dash-circle-fill"}
+Average: `{python} mean_employment_2025_val` %  
+
+Closest country: `{python} country_meanlike_emp_2025`  
+(`{python} employment_meanlike_2025_val` %)
+:::
+
+
+## Row {height="15%"}
+
+This page presents the **female employment rate (15+ years)** between 2000 and 2025 for the same selection of countries (USA, France, Switzerland). It indicates the share of women who are in employment, capturing important aspects of gender equality, labour market integration, and economic independence. Key questions:
+
+- How strongly are women integrated into the labour market in different countries?
+- Do we see increasing female employment over time?
+- Are there country-specific patterns or plateaus?
+
+## Row {height="35%"}
+
+### Column {width="100%"}
+```{python}
+fig_employment.add_scatter(
+    x=last_points_emp["year"],
+    y=last_points_emp["female_employment_rate"],
+    mode="text",
+    text=last_points_emp["name"],
+    textposition="middle right",
+    showlegend=False).update_layout(showlegend=False, height=450)
+```
+
+## Row {height="10%"}
+
+::: {.callout-note collapse="true" title="Interpretation"}
+
+The three countries display distinct patterns in female employment over time. The United States shows the highest overall employment rate among the three and demonstrates a gradual upward trend with some fluctuations, indicating a relatively stable integration of women into the labour market. Switzerland starts at a similar level to the United States but follows a different trajectory: after a moderate decline during the mid-2000s, employment levels stabilise and then rise again toward the end of the period, suggesting a recovery and renewed increase in women’s labour market participation. France, in contrast, begins at the lowest level and shows a slow but steady upward trend across the entire timeframe, reflecting incremental improvements in women's participation but remaining consistently below the levels seen in the United States and Switzerland. Together, these patterns illustrate that while all three countries have seen progress in female employment, they differ in pace, volatility, and long-term trajectories, reflecting variations in labour market structures, childcare systems, and policy environments.
+
+When reading the chart, it is helpful to consider more information on:
+
+- Sectoral structure (services vs. industry)
+- Prevalence of part-time work
+- Legal frameworks enabling or constraining women's labour market participation
+
+:::
+
+## Row {height="20%"}
+### Column {width="50%"}
+::: {.callout-note title="Top 5 Countries (Female Employment 2025)"}
+
+```{python}
+top5_employment_2025
+```
+
+:::
+
+### Column {width="50%"}
+::: {.callout-note title="Lowest 5 Countries (Female Employment 2025)"}
+
+```{python}
+bottom5_employment_2025
+```
+
+:::
+
+
+# Fertility & Female Employment
+
+## Row {height="20%"}
+
+This page synthesises the relationship between fertility and female employment over time.  
+The animated scatter plot displays, for each year between 2000 and 2025:
+
+- **x-axis:** female employment rate (%)  
+- **y-axis:** fertility rate (children per woman)  
+
+Each point represents a country, and the animation shows how countries move through this space over time. The colours indicate world regions, so countries with similar colours belong to the same broad geographic region.
+
+You can press the play button below the chart to follow how the global patterns evolve year by year.
+
+Guiding questions:
+
+- Do higher female employment rates systematically coincide with lower fertility?
+- Are there countries that combine high employment and moderate fertility?
+- How stable or dynamic is this relationship over time?
+
+## Row {height="70%"}
+
+### Column {width="100%"}
+
+```{python}
+# Because of the space I could not do a readable legend
+fig_scatter.update_layout(showlegend=False)
+```
+
+## Row {height="10%"} 
+
+::: {.callout-note collapse="true" title="Interpretation"}
+The scatterplots show a clear global shift between 2000 and 2025: fertility declines substantially across almost all regions, while female employment changes far more moderately. This creates a more compressed distribution in 2025 and makes the negative association between fertility and employment visually flatter than in 2000. Regional patterns remain recognisable: many African countries continue to combine comparatively high fertility with mixed employment levels; Europe and East Asia cluster at very low fertility with moderate to high female employment; and Latin America and parts of the Middle East occupy a transitional zone.
+
+In contexts such as Iran and Algeria, low fertility coincides with low female employment not because women are choosing between work and family, but because both outcomes are shaped by structural constraints. Limited access to formal employment, gender-segregated labour markets, insufficient childcare infrastructure, and legal or institutional barriers restrict women’s participation in the labour force. At the same time, fertility has fallen due to broader demographic transitions—urbanisation, rising education levels, delayed marriage, and improved access to contraception. These cases illustrate that declining fertility does not necessarily coincide with higher economic participation of women; rather, both indicators can move independently depending on social, economic, and institutional conditions.
+:::
+
+# Further Information
+
+This section provides concise summaries of peer-reviewed studies on the relationship between female employment and fertility. These findings help contextualise the patterns visible in the dashboard and illustrate how different countries and regions have developed over time. These studies complement the dashboard plots by showing that the patterns you observe for 2000–2025 (declining fertility, stable or moderately rising female employment, regional clustering) reflect long-standing empirical findings in demographic and labour-market research.
+
+## Row {height="70%"}
+
+### OECD countries – long-run link (width = "33%")
+**OECD countries – long-run link**
+The study from Mishra and Smyth analyses the long-run association between female labour force participation and the total fertility rate across OECD countries. Using panel cointegration techniques and Granger causality models, the authors identify a persistent negative long-run relationship, with increases in female employment predicting declines in fertility in several countries.
+
+::: {.callout-note title="Key finding"}
+In OECD countries, higher female labour force participation is typically associated with lower fertility in the long run.
+:::
+
+::: {.callout-note title="Reference" collapse="true"}
+Mishra, V., & Smyth, R. (2010). *Female labor force participation and total fertility rates in the OECD: New evidence from panel cointegration and Granger causality testing.* Journal of Economics and Business, 62(1), 48–64.  
+DOI: [10.1016/j.jeconbus.2009.07.006](https://doi.org/10.1016/j.jeconbus.2009.07.006)
+:::
+
+### Did the sign really change? (width = "33%")
+**Did the sign really change?**
+The paper from Kögel (2004) reassesses the claim that the correlation between female employment and fertility in OECD countries turned positive in recent decades. Using country fixed effects and trend controls, the analysis shows that the supposed “sign reversal” largely disappears once long-term trends are accounted for: the association remains mostly negative or non-positive.
+
+::: {.callout-note title="Key finding"}
+The commonly claimed “positive turn” in OECD fertility–employment correlations is not supported when long-term trends are properly controlled.
+:::
+
+::: {.callout-note title="Reference" collapse="true"} 
+Kögel, T. (2004). *Did the association between fertility and female employment within OECD countries really change its sign?* Journal of Population Economics, 17(1), 45–65.  
+DOI: [10.1007/s00148-003-0180-z](https://doi.org/10.1007/s00148-003-0180-z)
+:::
+
+### Developing countries perspective (width = "33%")
+**Developing countries perspective**
+Using panel data for 29 developing countries (1990–2011), Emara (2016) estimates the relationship between female employment and fertility using Prais–Winsten regressions. Higher female employment generally correlates with lower fertility, though the strength of this relationship varies by institutional context, social norms and labour-market conditions.
+
+::: {.callout-note title="Key finding"}
+In developing countries, higher female employment is usually associated with lower fertility, but the strength of the link varies across institutional and socio-economic settings.
+:::
+
+::: {.callout-note title="Reference" collapse="true"}
+Emara, N. (2016). *Fertility and Female Employment: A Panel Study on Developing Countries.* Applied Economics and Finance, 3(2), 122–127.  
+DOI: [10.11114/aef.v3i2.1381](https://doi.org/10.11114/aef.v3i2.1381)
+:::
+
+# Overall summary
+
+## Row {height="50%"}
+
+**Summary**
+
+Taken together, the gapminder data as well as further studies show that:
+
+- <i class="bi bi-bar-chart"></i> Across OECD countries, the long-run association between female employment and fertility is predominantly negative.
+
+- <i class="bi bi-globe"></i> In developing countries, the relationship is also mostly negative, though shaped by wider institutional and socio-economic factors.
+
+- <i class="bi bi-sliders2"></i> The relationship depends not only on labour supply but also on policy environments, childcare provision, labour-market structures and gender norms.
+
+- <i class="bi bi-graph-down-arrow"></i> Fertility converges downward over time, while female employment evolves more gradually and remains strongly influenced by regional and institutional differences.
+
+
+## Row {height="50%"}
+
+**Future Trends and Research Directions**
+
+Looking ahead, several developments will shape how fertility and employment evolve:
+
+<i class="bi bi-clock-history"></i> *Delayed parenthood* is likely to continue, shifting births into later reproductive ages and amplifying the importance of work–family reconciliation.
+
+<i class="bi bi-briefcase"></i> *Expansion of part-time and hybrid work* may influence female labour force participation differently across countries, depending on job quality and career penalties.
+
+<i class="bi bi-cpu"></i> *Technological change and automation* may alter labour market opportunities for women, especially in service-oriented economies.
+
+<i class="bi bi-arrows-expand"></i> *Cross-national divergence* could increase if policy reforms accelerate in some regions while stagnating in others.
+
+Future research should address how changing labour markets, family policies and gender norms interact over the life course to shape fertility and employment outcomes.
