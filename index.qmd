@@ -247,11 +247,11 @@ employment_2025
 .reset_index(drop=True))
 
 top5_employment_2025 = top5_employment_2025.rename(
-    columns={"name": "Country", "fertility_rate": "Fertility rate"}
+    columns={"name": "Country", "female_employment_rate": "Female employment rate"}
 )
 
 bottom5_employment_2025 = bottom5_employment_2025.rename(
-    columns={"name": "Country", "fertility_rate": "Fertility rate"})
+    columns={"name": "Country", "female_employment_rate": "Female employment rate"})
 
 # Add decade and create region-by-decade pivot tables
 
