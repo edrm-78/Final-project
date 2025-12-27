@@ -8,6 +8,8 @@ format:
      right: true
      home: true
     theme: sandstone
+    scrolling: true
+
     
 execute:
   warning: false
@@ -291,10 +293,24 @@ fert_emp_combined.to_csv("fert_emp_combined.csv", index=False)
 
 ```
 
+# {.sidebar}
+
+## 📁 Navigation  
+- <i class="bi bi-house-door"></i> [Overview](#overview)
+- <i class="bi bi-people"></i> [Fertility](#fertility)
+- <i class="bi bi-person-workspace"></i> [Female Employment](#female-employment-rate)
+- <i class="bi bi-diagram-3"></i> [Fertility & Employment](#fertility--female-employment)
+- <i class="bi bi-journal-text"></i> [Further Information](#further-information)
+- <i class="bi bi-lightbulb"></i> [Summary](#overall-summary)
+
+## 📥 Downloads  
+- <i class="bi bi-file-earmark-arrow-down"></i> [Fertility data](fertility_data_2000_2025.csv)
+- <i class="bi bi-file-earmark-arrow-down"></i> [Female employment data](female_employment_2000_2025.csv)
+- <i class="bi bi-file-earmark-arrow-down"></i> [Merged dataset](fert_emp_combined.csv)
 
 # Overview
 
-## Row {height="60%"}
+## Row 
 
 ### Column {width="50%"}
 ::: {.callout-note title="Introduction"}
@@ -330,7 +346,7 @@ If you create an exported merged file, you can also link it here, for example:
 
 # Fertility
 
-## Row {height="20%"}
+## Row 
 
 ### Column {width="33%"}
 
@@ -355,7 +371,7 @@ Closest country: `{python} country_meanlike_2025`
 (`{python} fertility_meanlike_2025_val` children per woman)
 :::
 
-## Row {height="15%"}
+## Row 
 
 This page presents the **total fertility rate** (average number of children per woman) between 2000 and 2025 for a selection of countries (Switzerland, USA, France).
 
@@ -367,7 +383,7 @@ Typical questions:
 - Are there clear differences between high-income and emerging economies?
 - Do we observe convergence or divergence in fertility levels?
 
-## Row {height="35%"}
+## Row
 
 ### Column {width="100%"}
 
@@ -381,7 +397,7 @@ fig_fertility.add_scatter(
     showlegend=False).update_layout(showlegend=False, height=450)
 ```
 
-## Row {height= "10%"}
+## Row
 ::: {.callout-note collapse="true"}
 
 ## Interpretation
@@ -394,7 +410,7 @@ When interpreting the chart, it is useful to consider more information on:
 - Changing norms regarding family size and timing of parenthood
 :::
 
-## Row {height="20%"}
+## Row 
 
 ### Column {width="50%"}
 ::: {.callout-note title="Top 5 Countries (Fertility 2025)"}
@@ -416,7 +432,7 @@ bottom5_fertility_2025
 
 # Female Employment Rate
 
-## Row {height="20%"}
+## Row 
 
 ### Column {width="33%"}
 
@@ -442,7 +458,7 @@ Closest country: `{python} country_meanlike_emp_2025`
 :::
 
 
-## Row {height="15%"}
+## Row
 
 This page presents the **female employment rate (15+ years)** between 2000 and 2025 for the same selection of countries (USA, France, Switzerland). It indicates the share of women who are in employment, capturing important aspects of gender equality, labour market integration, and economic independence. Key questions:
 
@@ -450,7 +466,7 @@ This page presents the **female employment rate (15+ years)** between 2000 and 2
 - Do we see increasing female employment over time?
 - Are there country-specific patterns or plateaus?
 
-## Row {height="35%"}
+## Row 
 
 ### Column {width="100%"}
 ```{python}
@@ -463,7 +479,7 @@ fig_employment.add_scatter(
     showlegend=False).update_layout(showlegend=False, height=450)
 ```
 
-## Row {height="10%"}
+## Row
 
 ::: {.callout-note collapse="true" title="Interpretation"}
 
@@ -477,7 +493,7 @@ When reading the chart, it is helpful to consider more information on:
 
 :::
 
-## Row {height="20%"}
+## Row 
 ### Column {width="50%"}
 ::: {.callout-note title="Top 5 Countries (Female Employment 2025)"}
 
@@ -499,7 +515,7 @@ bottom5_employment_2025
 
 # Fertility & Female Employment
 
-## Row {height="20%"}
+## Row 
 
 This page synthesises the relationship between fertility and female employment over time.  
 The animated scatter plot displays, for each year between 2000 and 2025:
@@ -517,7 +533,7 @@ Guiding questions:
 - Are there countries that combine high employment and moderate fertility?
 - How stable or dynamic is this relationship over time?
 
-## Row {height="70%"}
+## Row
 
 ### Column {width="100%"}
 
@@ -526,7 +542,7 @@ Guiding questions:
 fig_scatter.update_layout(showlegend=False)
 ```
 
-## Row {height="10%"} 
+## Row
 
 ::: {.callout-note collapse="true" title="Interpretation"}
 The scatterplots show a clear global shift between 2000 and 2025: fertility declines substantially across almost all regions, while female employment changes far more moderately. This creates a more compressed distribution in 2025 and makes the negative association between fertility and employment visually flatter than in 2000. Regional patterns remain recognisable: many African countries continue to combine comparatively high fertility with mixed employment levels; Europe and East Asia cluster at very low fertility with moderate to high female employment; and Latin America and parts of the Middle East occupy a transitional zone.
@@ -538,7 +554,7 @@ In contexts such as Iran and Algeria, low fertility coincides with low female em
 
 This section provides concise summaries of peer-reviewed studies on the relationship between female employment and fertility. These findings help contextualise the patterns visible in the dashboard and illustrate how different countries and regions have developed over time. These studies complement the dashboard plots by showing that the patterns you observe for 2000–2025 (declining fertility, stable or moderately rising female employment, regional clustering) reflect long-standing empirical findings in demographic and labour-market research.
 
-## Row {height="70%"}
+## Row 
 
 ### OECD countries – long-run link (width = "33%")
 **OECD countries – long-run link**
@@ -581,7 +597,7 @@ DOI: [10.11114/aef.v3i2.1381](https://doi.org/10.11114/aef.v3i2.1381)
 
 # Overall summary
 
-## Row {height="50%"}
+## Row
 
 **Summary**
 
@@ -596,7 +612,7 @@ Taken together, the gapminder data as well as further studies show that:
 - <i class="bi bi-graph-down-arrow"></i> Fertility converges downward over time, while female employment evolves more gradually and remains strongly influenced by regional and institutional differences.
 
 
-## Row {height="50%"}
+## Row
 
 **Future Trends and Research Directions**
 
